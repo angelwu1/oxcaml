@@ -1,5 +1,3 @@
 (library
- (name tictactoe_logic_library)
- (libraries core)
- (preprocess
-  (pps ppx_jane)))
+ (name loa_logic_library)
+ (modules hw1 hw2_loa_logic loa_logic_library))
