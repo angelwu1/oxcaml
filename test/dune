@@ -1,6 +1,6 @@
 (library
- (libraries core tictactoe_logic_library)
- (name tictactoe_test_library)
+ (name loa_test_library)
+ (modules hw3_loa_logic_test)
+ (libraries loa_logic_library core)
  (inline_tests)
- (preprocess
-  (pps ppx_jane)))
+ (preprocess (pps ppx_jane)))
