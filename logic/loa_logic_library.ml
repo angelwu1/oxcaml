@@ -13,3 +13,5 @@ let make_move   = L.make_move
 let is_winner   = L.is_winner
 
 let initial_state = Hw1.initial_state
+let example_move1 = Hw1.example_move1
+let example_move2 = Hw1.example_move2

@@ -1,5 +1,5 @@
 open! Core
-open Loa_logic_library
+open Hw2_loa_logic
 
 let other = function Black -> White | White -> Black
 
@@ -13,7 +13,7 @@ let get_cell (b:board) (p:coord) : cell option =
 let current_player_pieces (st:state) : coord list =
   let who = st.turn in
   List.filter all_coords ~f:(fun p ->
-    match get_cell st.board p with Some (Piece pl) when pl = who -> true | _ -> false)
+    match get_cell st.board p with Some (Piece pl) when Poly.equal pl who -> true | _ -> false)
 
 let all_legal_moves (st:state) : move_ list =
   (* Naively try all destinations for each of our pieces and filter by legal_move. *)
@@ -36,44 +36,33 @@ let neighbors8 (p:coord) : coord list =
 
 let largest_component_size (st:state) (pl:player) : int =
   let pieces =
-    List.filter all_coords ~f:(fun p -> match get_cell st.board p with Some (Piece q) when q=pl -> true | _ -> false)
+    List.filter all_coords ~f:(fun p -> match get_cell st.board p with Some (Piece q) when Poly.equal q pl -> true | _ -> false)
   in
-  let module S = Set.M(struct
-    type t = int * int [@@deriving compare, sexp]
-  end) in
-  let rec bfs queue seen size =
-    match queue with
-    | [] -> size
+  let module H = Hashtbl.Poly in
+  let seen = H.create () in
+  let in_seen (q:coord) = H.mem seen (q.r, q.c) in
+  let add_seen (q:coord) = H.add seen (q.r, q.c) () in
+  let rec bfs acc = function
+    | [] -> acc
     | q::qs ->
-      let seen = S.add seen (q.r, q.c) in
-      let nexts =
-        neighbors8 q
-        |> List.filter ~f:(fun t ->
-             match get_cell st.board t with Some (Piece p) when p = pl -> not (S.mem seen (t.r,t.c)) | _ -> false)
-      in
-      bfs (List.rev_append nexts qs) seen (size + 1)
+      if in_seen q then bfs acc qs
+      else (
+        add_seen q;
+        let neighbors =
+          neighbors8 q
+          |> List.filter ~f:(fun t -> match get_cell st.board t with Some (Piece p) when Poly.equal p pl -> not (in_seen t) | _ -> false)
+        in
+        bfs (acc + 1) (List.rev_append neighbors qs))
   in
-  let rec loop max_size seen = function
+  let rec loop max_size = function
     | [] -> max_size
     | p::ps ->
-      if S.mem seen (p.r,p.c) then loop max_size seen ps
+      if in_seen p then loop max_size ps
       else
-        let size = bfs [p] seen 0 in
-        (* bfs marks on the fly; rebuild seen by walking component again *)
-        let rec mark seen = function
-          | [] -> seen
-          | q::qs ->
-            let seen = S.add seen (q.r,q.c) in
-            let nexts =
-              neighbors8 q
-              |> List.filter ~f:(fun t -> match get_cell st.board t with Some (Piece x) when x=pl -> not (S.mem seen (t.r,t.c)) | _ -> false)
-            in
-            mark seen (List.rev_append nexts qs)
-        in
-        let seen = mark seen [p] in
-        loop (Int.max max_size size) seen ps
+        let size = bfs 0 [p] in
+        loop (Int.max max_size size) ps
   in
-  loop 0 S.empty pieces
+  loop 0 pieces
 
 let is_terminal (st:state) : player option =
   if is_winner st Black then Some Black
@@ -187,7 +176,7 @@ let run_many_games
     if i = n then b, w, d
     else
       let winner =
-        play_game ~move_time_budget ~initial:initial_state ~p_black ~p_white
+        play_game ~move_time_budget ~initial:Hw1.initial_state ~p_black ~p_white
       in
       match winner with
       | Some Black -> go (i+1) (b+1) w d

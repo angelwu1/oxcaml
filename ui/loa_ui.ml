@@ -26,15 +26,15 @@ type triplet = { s_from : state; mv : move_; s_to : state }
 
 let build_triplets () : triplet list =
   let t1 =
-    let s_from = Hw1.initial_state in
-    let mv = Hw1.example_move1 in
-    let s_to = make_move s_from mv |> Result.ok_or_failwith in
+    let s_from = Loa_logic_library.initial_state in
+    let mv = Loa_logic_library.example_move1 in
+    let s_to = match make_move s_from mv with Ok s -> s | Error _ -> failwith "illegal" in
     { s_from; mv; s_to }
   in
   let t2 =
-    let s_from = (make_move Hw1.initial_state Hw1.example_move1 |> Result.ok_or_failwith) in
-    let mv = Hw1.example_move2 in
-    let s_to = make_move s_from mv |> Result.ok_or_failwith in
+    let s_from = (match make_move Loa_logic_library.initial_state Loa_logic_library.example_move1 with Ok s -> s | Error _ -> failwith "illegal") in
+    let mv = Loa_logic_library.example_move2 in
+    let s_to = match make_move s_from mv with Ok s -> s | Error _ -> failwith "illegal" in
     { s_from; mv; s_to }
   in
   (* Add 3 more deterministic triplets by taking the first few legal moves each step *)
@@ -44,7 +44,7 @@ let build_triplets () : triplet list =
       match all_legal_moves st with
       | [] -> List.rev acc
       | mv::_ ->
-        let s_to = make_move st mv |> Result.ok_or_failwith in
+        let s_to = match make_move st mv with Ok s -> s | Error _ -> failwith "illegal" in
         extend ({ s_from = st; mv; s_to } :: acc) s_to (n-1)
   in
   let extra = extend [] t2.s_to 3 in
@@ -68,31 +68,6 @@ let black_piece =
       "<circle cx='50' cy='50' r='40' stroke='black' stroke-width='6' fill='black' />"
     ()
 
-let cell_div ~row ~col ~has_right ~has_bottom child =
-  let open Css_gen in
-  let borders =
-    [ (if has_right then [ border_right (`Px 2), `Color (`Name "#333") ] else [])
-    ; (if has_bottom then [ border_bottom (`Px 2), `Color (`Name "#333") ] else [])
-    ]
-    |> List.concat
-  in
-  let cell_style =
-    left (`Percent (Percent.of_percentage (Float.of_int col *. 12.5)))
-    @> top (`Percent (Percent.of_percentage (Float.of_int row *. 12.5)))
-    @> width (`Percent (Percent.of_percentage 12.5))
-    @> height (`Percent (Percent.of_percentage 12.5))
-  in
-  let border_style =
-    List.fold_left borders ~init:Css_gen.empty ~f:(fun acc (prop, `Color color) ->
-        acc @> prop @> border_color color)
-  in
-  Vdom.Node.div
-    ~attrs:
-      [ Vdom.Attr.class_ "cell"
-      ; Vdom.Attr.style (cell_style @> border_style)
-      ]
-    [ Vdom.Node.div ~attrs:[ Vdom.Attr.class_ "max_size" ] [ child ] ]
-
 let board_view ~(state_to_show:state) ~(highlight:coord option * coord option) =
   let is_highlight r c =
     match highlight with
@@ -108,14 +83,20 @@ let board_view ~(state_to_show:state) ~(highlight:coord option * coord option) =
       | Some (Piece White) -> white_piece
       | _ -> Vdom.Node.none
     in
-    let has_right = c < board_size - 1 in
-    let has_bottom = r < board_size - 1 in
-    let piece =
-      if is_highlight r c
-      then Vdom.Node.div ~attrs:[ Vdom.Attr.class_ "highlight" ] [ piece ]
-      else piece
+    let border_classes =
+      (if r < board_size - 1 then [ Vdom.Attr.class_ "border_bottom" ] else []) @
+      (if c < board_size - 1 then [ Vdom.Attr.class_ "border_right" ] else [])
     in
-    cell_div ~row:r ~col:c ~has_right ~has_bottom piece
+    let highlight_class = if is_highlight r c then [ Vdom.Attr.class_ "slowly_appear" ] else [] in
+    Vdom.Node.div
+      ~attrs:
+        ([ Vdom.Attr.class_ "column"
+         ; Vdom.Attr.style Css_gen.(
+             left (`Percent (Percent.of_percentage (Float.of_int c *. 12.5)))
+             @> width (`Percent (Percent.of_percentage 12.5))
+           )
+         ] @ border_classes)
+      [ Vdom.Node.div ~attrs:(highlight_class @ [ Vdom.Attr.class_ "max_size" ]) [ piece ] ]
   in
   Vdom.Node.div
     ~attrs:[ Vdom.Attr.class_ "game" ]
@@ -123,8 +104,10 @@ let board_view ~(state_to_show:state) ~(highlight:coord option * coord option) =
          Vdom.Node.div
            ~attrs:
              [ Vdom.Attr.class_ "row"
-             ; Vdom.Attr.style Css_gen.(top (`Percent (Percent.of_percentage (Float.of_int r *. 12.5)))
-                                        @> height (`Percent (Percent.of_percentage 12.5)))
+             ; Vdom.Attr.style Css_gen.(
+                 top (`Percent (Percent.of_percentage (Float.of_int r *. 12.5)))
+                 @> height (`Percent (Percent.of_percentage 12.5))
+               )
              ]
            (List.init board_size ~f:(fun c -> render_cell r c))))
 

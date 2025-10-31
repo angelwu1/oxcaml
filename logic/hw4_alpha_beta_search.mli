@@ -1,5 +1,5 @@
 open! Core
-open Loa_logic_library
+open Hw2_loa_logic
 
 (** Returns a random legal move for the current player, or [None] if no moves. *)
 val random_move : state -> move_ option
