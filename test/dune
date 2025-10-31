@@ -1,6 +1,6 @@
 (library
  (name loa_test_library)
- (modules hw3_loa_logic_test)
+ (modules hw3_loa_logic_test hw4_alpha_beta_search_test)
  (libraries loa_logic_library core)
  (inline_tests)
  (preprocess (pps ppx_jane)))

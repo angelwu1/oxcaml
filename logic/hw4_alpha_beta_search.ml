@@ -1,105 +1,197 @@
 open! Core
-open Hw2_tictactoe_logic
+open Loa_logic_library
 
-let heuristic_value (node : Game_state.t) =
-  match node.decision with
-  | Stalemate -> 0
-  | In_progress _ ->
-    (* For more complex games, like Gomoku/connect6, we should have here a heuristic
-       function that scores how good this state for player X, i.e., the higher the number
-       the better it is for X. *)
-    0
-  | Winner player_kind ->
-    (match player_kind with
-     | X -> Int.max_value
-     | O -> Int.min_value)
-;;
+let other = function Black -> White | White -> Black
 
-let children node ~(sort_by_whose_turn : Player_kind.t) =
-  let compare =
-    match sort_by_whose_turn with
-    | X -> Int.descending
-    | O -> Int.ascending
+let all_coords : coord list =
+  List.init board_size ~f:(fun r -> List.init board_size ~f:(fun c -> { r; c }))
+  |> List.concat
+
+let get_cell (b:board) (p:coord) : cell option =
+  List.nth b p.r |> Option.bind ~f:(fun row -> List.nth row p.c)
+
+let current_player_pieces (st:state) : coord list =
+  let who = st.turn in
+  List.filter all_coords ~f:(fun p ->
+    match get_cell st.board p with Some (Piece pl) when pl = who -> true | _ -> false)
+
+let all_legal_moves (st:state) : move_ list =
+  (* Naively try all destinations for each of our pieces and filter by legal_move. *)
+  let froms = current_player_pieces st in
+  List.concat_map froms ~f:(fun from_ ->
+    List.filter_map all_coords ~f:(fun to_ ->
+      if from_.r = to_.r && from_.c = to_.c then None
+      else
+        match legal_move st { from_; to_ } with
+        | Ok () -> Some { from_; to_ }
+        | Error _ -> None))
+
+(* Heuristic helpers: size of the largest 8-neighbor connected component per player. *)
+let neighbors8 (p:coord) : coord list =
+  [ {r=p.r-1;c=p.c-1}; {r=p.r-1;c=p.c}; {r=p.r-1;c=p.c+1}
+  ; {r=p.r  ;c=p.c-1};                   {r=p.r  ;c=p.c+1}
+  ; {r=p.r+1;c=p.c-1}; {r=p.r+1;c=p.c}; {r=p.r+1;c=p.c+1}
+  ]
+  |> List.filter ~f:(fun {r;c} -> 0 <= r && r < board_size && 0 <= c && c < board_size)
+
+let largest_component_size (st:state) (pl:player) : int =
+  let pieces =
+    List.filter all_coords ~f:(fun p -> match get_cell st.board p with Some (Piece q) when q=pl -> true | _ -> false)
   in
-  let moves = Game_state.get_all_moves node in
-  List.filter_map moves ~f:(fun move -> Game_state.make_move node move |> Result.ok)
-  (* Sorting the children by heuristic values gives the best alpha-beta pruning. *)
-  |> List.sort ~compare:(Comparable.lift ~f:heuristic_value compare)
-;;
+  let module S = Set.M(struct
+    type t = int * int [@@deriving compare, sexp]
+  end) in
+  let rec bfs queue seen size =
+    match queue with
+    | [] -> size
+    | q::qs ->
+      let seen = S.add seen (q.r, q.c) in
+      let nexts =
+        neighbors8 q
+        |> List.filter ~f:(fun t ->
+             match get_cell st.board t with Some (Piece p) when p = pl -> not (S.mem seen (t.r,t.c)) | _ -> false)
+      in
+      bfs (List.rev_append nexts qs) seen (size + 1)
+  in
+  let rec loop max_size seen = function
+    | [] -> max_size
+    | p::ps ->
+      if S.mem seen (p.r,p.c) then loop max_size seen ps
+      else
+        let size = bfs [p] seen 0 in
+        (* bfs marks on the fly; rebuild seen by walking component again *)
+        let rec mark seen = function
+          | [] -> seen
+          | q::qs ->
+            let seen = S.add seen (q.r,q.c) in
+            let nexts =
+              neighbors8 q
+              |> List.filter ~f:(fun t -> match get_cell st.board t with Some (Piece x) when x=pl -> not (S.mem seen (t.r,t.c)) | _ -> false)
+            in
+            mark seen (List.rev_append nexts qs)
+        in
+        let seen = mark seen [p] in
+        loop (Int.max max_size size) seen ps
+  in
+  loop 0 S.empty pieces
 
-(*=
-https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning
+let is_terminal (st:state) : player option =
+  if is_winner st Black then Some Black
+  else if is_winner st White then Some White
+  else None
 
-function alpha_beta(node, depth, α, β, maximizing_player) is
-    if depth == 0 or node is terminal then
-        return the heuristic value of node
-    if maximizing_player then
-        value := −∞
-        for each child of node do
-            value := max(value, alpha_beta(child, depth − 1, α, β, FALSE))
-            if value ≥ β then
-                break (* β cutoff *)
-            α := max(α, value)
-        return value
+let heuristic_value (st:state) : int =
+  (* From Black's perspective: large positive means good for Black. *)
+  let black_size = largest_component_size st Black in
+  let white_size = largest_component_size st White in
+  (* Prefer positions closer to connectivity and penalize opponent. *)
+  (black_size - white_size)
+
+let child_states (st:state) : (move_ * state) list =
+  all_legal_moves st
+  |> List.filter_map ~f:(fun mv -> make_move st mv |> Result.ok |> Option.map ~f:(fun s' -> (mv, s')))
+
+let rec alphabeta_value (st:state) ~(depth:int) ~(alpha:int) ~(beta:int) : int =
+  match is_terminal st, depth with
+  | Some Black, _ -> Int.max_value
+  | Some White, _ -> Int.min_value
+  | None, d when d <= 0 -> heuristic_value st
+  | None, _ ->
+    let maximizing = Poly.equal st.turn Black in
+    if maximizing then (
+      let value, _ =
+        List.fold_until
+          (child_states st)
+          ~init:(Int.min_value, alpha)
+          ~finish:(fun (v,_) -> v)
+          ~f:(fun (best, a) (_mv, child) ->
+            let v = Int.max best (alphabeta_value child ~depth:(depth-1) ~alpha:a ~beta) in
+            let a = Int.max a v in
+            if v >= beta then Stop (v, a) else Continue (v, a))
+      in
+      value
+    ) else (
+      let value, _ =
+        List.fold_until
+          (child_states st)
+          ~init:(Int.max_value, beta)
+          ~finish:(fun (v,_) -> v)
+          ~f:(fun (best, b) (_mv, child) ->
+            let v = Int.min best (alphabeta_value child ~depth:(depth-1) ~alpha ~beta:b) in
+            let b = Int.min b v in
+            if v <= alpha then Stop (v, b) else Continue (v, b))
+      in
+      value)
+
+let alpha_beta_depth (st:state) ~(depth:int) : move_ option =
+  match is_terminal st with
+  | Some _ -> None
+  | None ->
+    let moves = child_states st in
+    let scored =
+      List.map moves ~f:(fun (mv, child) -> mv, alphabeta_value child ~depth:(depth-1) ~alpha:Int.min_value ~beta:Int.max_value)
+    in
+    let cmp = if Poly.equal st.turn Black then Int.compare else (fun a b -> Int.compare b a) in
+    List.max_elt scored ~compare:(fun (_m1, v1) (_m2, v2) -> cmp v1 v2)
+    |> Option.map ~f:fst
+
+let random_move (st:state) : move_ option =
+  let moves = all_legal_moves st in
+  match moves with
+  | [] -> None
+  | _ ->
+    let idx = Random.int (List.length moves) in
+    List.nth_exn moves idx
+
+let alpha_beta_timed (st:state) ~(time_budget:Time_float.Span.t) : move_ option =
+  let deadline = Time_float.(add (now ()) time_budget) in
+  let rec deepen depth best =
+    if Time_float.(now () >= deadline) then best
     else
-        value := +∞
-        for each child of node do
-            value := min(value, alpha_beta(child, depth − 1, α, β, TRUE))
-            if value ≤ α then
-                break (* α cutoff *)
-            β := min(β, value)
-        return value
+      let next = alpha_beta_depth st ~depth in
+      let best = Option.first_some next best in
+      deepen (depth + 1) best
+  in
+  deepen 1 None
 
+let play_game
+    ?(move_time_budget=Time_float.Span.of_sec 2.)
+    ~(initial:state)
+    ~(p_black:(state -> move_ option))
+    ~(p_white:(state -> move_ option))
+  : player option =
+  let rec loop st turn move_count =
+    if is_winner st Black then Some Black
+    else if is_winner st White then Some White
+    else if move_count > 1024 then None (* safeguard *)
+    else
+      let chooser = if Poly.equal turn Black then p_black else p_white in
+      let start = Time_float.now () in
+      let rec get_move () =
+        if Time_float.(now () > add start move_time_budget) then None
+        else chooser st
+      in
+      match get_move () with
+      | None -> Some (other turn) (* forfeits due to timeout/no move *)
+      | Some mv -> (
+          match make_move st mv with
+          | Error _ -> Some (other turn) (* illegal move forfeits *)
+          | Ok st' -> loop st' (other turn) (move_count + 1))
+  in
+  loop initial initial.turn 0
 
-alphabeta(origin, depth, −∞, +∞, TRUE)
-*)
-let rec alpha_beta (node : Game_state.t) depth alpha beta =
-  match node.decision with
-  | In_progress { whose_turn } when depth > 0 ->
-    (match whose_turn with
-     | X ->
-       List.fold_until
-         (children node ~sort_by_whose_turn:whose_turn)
-         ~init:(Int.min_value, alpha)
-         ~finish:(fun (value, _alpha) -> value)
-         ~f:(fun (value, alpha) child ->
-           let value = Int.max value (alpha_beta child (depth - 1) alpha beta) in
-           let alpha = Int.max alpha value in
-           if value >= beta then Stop value else Continue (value, alpha))
-     | O ->
-       List.fold_until
-         (children node ~sort_by_whose_turn:whose_turn)
-         ~init:(Int.max_value, beta)
-         ~finish:(fun (value, _beta) -> value)
-         ~f:(fun (value, beta) child ->
-           let value = Int.min value (alpha_beta child (depth - 1) alpha beta) in
-           let beta = Int.min beta value in
-           if value <= alpha then Stop value else Continue (value, beta)))
-  | _ -> heuristic_value node
-;;
-
-let alpha_beta (node : Game_state.t) ~depth =
-  match node.decision with
-  | Winner _ | Stalemate -> None
-  | In_progress { whose_turn } ->
-    let moves = Game_state.get_all_moves node in
-    let moves_and_children =
-      List.filter_map moves ~f:(fun move ->
-        Game_state.make_move node move
-        |> Result.ok
-        |> Option.map ~f:(fun child -> move, child))
-    in
-    let moves_and_children_and_values =
-      List.map moves_and_children ~f:(fun (move, child) ->
-        move, child, alpha_beta child (depth - 1) Int.min_value Int.max_value)
-    in
-    let best_move =
-      (match whose_turn with
-       | X -> List.max_elt
-       | O -> List.min_elt)
-        moves_and_children_and_values
-        ~compare:(fun (_move, _child, v1) (_move, _child, v2) -> Int.compare v1 v2)
-      |> Option.map ~f:(fun (move, _child, _value) -> move)
-    in
-    best_move
-;;
+let run_many_games
+    ?(move_time_budget=Time_float.Span.of_sec 2.)
+    n ~p_black ~p_white : int * int * int =
+  let rec go i b w d =
+    if i = n then b, w, d
+    else
+      let winner =
+        play_game ~move_time_budget ~initial:initial_state ~p_black ~p_white
+      in
+      match winner with
+      | Some Black -> go (i+1) (b+1) w d
+      | Some White -> go (i+1) b (w+1) d
+      | None -> go (i+1) b w (d+1)
+  in
+  go 0 0 0 0
