@@ -1,6 +1,6 @@
 (executables
  (modes js)
  (names loa_ui)
- (libraries bonsai.web core virtual_dom loa_logic_library)
+ (libraries bonsai_web core virtual_dom loa_logic_library)
  (preprocess
   (pps ppx_jane bonsai.ppx_bonsai)))
