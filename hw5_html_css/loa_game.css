@@ -1,0 +1,125 @@
+/* LOA game board styling to match the visual */
+body {
+  background: #f5f5f5;
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: fixed !important;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+.game {
+  width: min(90vw, 90vh);
+  height: min(90vw, 90vh);
+  aspect-ratio: 1;
+  position: relative;
+  background: #d4b896; /* Tan/beige board color */
+  border: 3px solid #333;
+}
+
+.row {
+  position: absolute;
+  left: 0%;
+  width: 100%;
+}
+
+.column {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Grid lines */
+.border_right {
+  border-right: 2px solid #8b7355;
+}
+
+.border_bottom {
+  border-bottom: 2px solid #8b7355;
+}
+
+.max_size {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* SVG pieces styling */
+svg {
+  width: 75%;
+  height: 75%;
+  pointer-events: none;
+}
+
+/* Hover effect for clickable cells */
+.box-shadow-with-hover-effect:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Selected piece animation */
+.slowly_appear {
+  animation: slowly_appear 0.3s ease-in-out;
+  background-color: rgba(42, 121, 255, 0.15);
+}
+
+@keyframes slowly_appear {
+  from {
+    opacity: 0.3;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Prevent text selection and touch callouts */
+* {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  -moz-touch-callout: none;
+  -ms-touch-callout: none;
+  outline: 0;
+}
+
+/* Game info styling */
+div {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+}
+
+button {
+  margin: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-family: inherit;
+  background: #2a79ff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background: #1d5cd4;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
