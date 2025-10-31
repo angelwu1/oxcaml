@@ -1,4 +1,5 @@
 (library
  (name loa_logic_library)
+ (wrapped false)
  (modules hw1 hw2_loa_logic hw4_alpha_beta_search loa_logic_library)
  (libraries core))

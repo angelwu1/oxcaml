@@ -1,4 +1,5 @@
 (executables
+ (enabled_if false)
  (modes js)
  (names loa_ui)
  (libraries bonsai_web core virtual_dom loa_logic_library)

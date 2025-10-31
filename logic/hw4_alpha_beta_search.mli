@@ -16,7 +16,7 @@ val alpha_beta_timed : state -> time_budget:Time_float.Span.t -> move_ option
     to move. To protect against slow opponents, each move function is wrapped with a
     [Time_float.Span.t] budget; if it returns [None] or times out, the player loses. *)
 val play_game
-  :  ?move_time_budget:Time_float.Span.t
+  :  move_time_budget:Time_float.Span.t
   -> initial:state
   -> p_black:(state -> move_ option)
   -> p_white:(state -> move_ option)

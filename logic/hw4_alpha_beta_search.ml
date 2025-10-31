@@ -41,7 +41,7 @@ let largest_component_size (st:state) (pl:player) : int =
   let module H = Hashtbl.Poly in
   let seen = H.create () in
   let in_seen (q:coord) = H.mem seen (q.r, q.c) in
-  let add_seen (q:coord) = H.add seen (q.r, q.c) () in
+  let add_seen (q:coord) = ignore (H.add seen ~key:(q.r, q.c) ~data:()) in
   let rec bfs acc = function
     | [] -> acc
     | q::qs ->
@@ -88,29 +88,23 @@ let rec alphabeta_value (st:state) ~(depth:int) ~(alpha:int) ~(beta:int) : int =
   | None, _ ->
     let maximizing = Poly.equal st.turn Black in
     if maximizing then (
-      let value, _ =
-        List.fold_until
-          (child_states st)
-          ~init:(Int.min_value, alpha)
-          ~finish:(fun (v,_) -> v)
-          ~f:(fun (best, a) (_mv, child) ->
-            let v = Int.max best (alphabeta_value child ~depth:(depth-1) ~alpha:a ~beta) in
-            let a = Int.max a v in
-            if v >= beta then Stop (v, a) else Continue (v, a))
+      let rec max_loop best a = function
+        | [] -> best
+        | (_mv, child)::rest ->
+          let v = Int.max best (alphabeta_value child ~depth:(depth-1) ~alpha:a ~beta) in
+          let a' = Int.max a v in
+          if v >= beta then v else max_loop v a' rest
       in
-      value
+      max_loop Int.min_value alpha (child_states st)
     ) else (
-      let value, _ =
-        List.fold_until
-          (child_states st)
-          ~init:(Int.max_value, beta)
-          ~finish:(fun (v,_) -> v)
-          ~f:(fun (best, b) (_mv, child) ->
-            let v = Int.min best (alphabeta_value child ~depth:(depth-1) ~alpha ~beta:b) in
-            let b = Int.min b v in
-            if v <= alpha then Stop (v, b) else Continue (v, b))
+      let rec min_loop best b = function
+        | [] -> best
+        | (_mv, child)::rest ->
+          let v = Int.min best (alphabeta_value child ~depth:(depth-1) ~alpha ~beta:b) in
+          let b' = Int.min b v in
+          if v <= alpha then v else min_loop v b' rest
       in
-      value)
+      min_loop Int.max_value beta (child_states st))
 
 let alpha_beta_depth (st:state) ~(depth:int) : move_ option =
   match is_terminal st with
@@ -130,7 +124,7 @@ let random_move (st:state) : move_ option =
   | [] -> None
   | _ ->
     let idx = Random.int (List.length moves) in
-    List.nth_exn moves idx
+    Some (List.nth_exn moves idx)
 
 let alpha_beta_timed (st:state) ~(time_budget:Time_float.Span.t) : move_ option =
   let deadline = Time_float.(add (now ()) time_budget) in
@@ -144,7 +138,7 @@ let alpha_beta_timed (st:state) ~(time_budget:Time_float.Span.t) : move_ option 
   deepen 1 None
 
 let play_game
-    ?(move_time_budget=Time_float.Span.of_sec 2.)
+    ~(move_time_budget:Time_float.Span.t)
     ~(initial:state)
     ~(p_black:(state -> move_ option))
     ~(p_white:(state -> move_ option))
@@ -156,7 +150,7 @@ let play_game
     else
       let chooser = if Poly.equal turn Black then p_black else p_white in
       let start = Time_float.now () in
-      let rec get_move () =
+      let get_move () =
         if Time_float.(now () > add start move_time_budget) then None
         else chooser st
       in

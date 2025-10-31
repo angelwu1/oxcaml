@@ -116,7 +116,7 @@ let toolbar ~(triplet_idx:int) ~(num:int) ~(show_to:bool) ~set_idx ~set_show =
     Vdom.Node.button ~attrs:[ Vdom.Attr.on_click (fun _ -> on_click ()) ] [ Vdom.Node.text label ]
   in
   Vdom.Node.div
-    ~attrs:[ Vdom.Attr.style (Css_gen.(margin (`Px 8))) ]
+    ~attrs:[]
     [ btn "Prev" (fun () -> set_idx (Int.max 0 (triplet_idx - 1)))
     ; Vdom.Node.text (sprintf "  Triplet %d/%d  " (triplet_idx+1) num)
     ; btn "Next" (fun () -> set_idx (Int.min (num-1) (triplet_idx + 1)))
