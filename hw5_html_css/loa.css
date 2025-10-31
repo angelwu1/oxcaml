@@ -1,0 +1,62 @@
+/* Center page, responsive square board */
+body {
+  background: #f7f7f7;
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.container {
+  width: min(92vw, 92vh);
+  aspect-ratio: 1;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 0.5rem;
+}
+
+.title {
+  text-align: center;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  font-weight: 600;
+}
+
+.board {
+  width: 100%;
+  height: 100%;
+  background: #e0c39a; /* wood-like */
+  border: 0.5vmin solid #333;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+}
+
+.cell {
+  position: relative;
+  border: 0.25vmin solid rgba(0,0,0,0.35);
+}
+
+.piece {
+  position: absolute;
+  inset: 10%;
+  border-radius: 50%;
+  border: 0.35vmin solid #222;
+}
+.piece.black { background: #111; }
+.piece.white { background: #fff; }
+
+.highlight {
+  outline: 0.6vmin solid #2a79ff;
+  outline-offset: -0.6vmin;
+}
+
+.footer {
+  text-align: center;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  font-size: clamp(12px, 2.5vmin, 16px);
+  color: #444;
+}
+

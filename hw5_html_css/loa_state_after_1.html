@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>LOA – After Move 1 (C1→C3)</title>
+  <link rel="stylesheet" href="loa.css">
+</head>
+<body>
+  <div class="container">
+    <div class="title">Lines of Action — After C1 → C3</div>
+    <div class="board" id="board"></div>
+    <div class="footer">Blue squares indicate from/to of the last move.</div>
+  </div>
+
+  <script>
+    // Matches logic/hw1.ml state_after_1
+    // Board rows copied from hw1.ml for exact reproducibility
+    const _ = '.'; const B='B'; const W='W';
+    const board = [
+      ['.', '.', 'B','B','B','B','B','.'],
+      ['W','.', '.', '.', '.', '.', '.', 'W'],
+      ['W','B','.', '.', '.', '.', '.', 'W'],
+      ['W','.', '.', '.', '.', '.', '.', 'W'],
+      ['W','.', '.', '.', '.', '.', '.', 'W'],
+      ['W','.', '.', '.', '.', '.', '.', 'W'],
+      ['W','.', '.', '.', '.', '.', '.', 'W'],
+      ['.', 'B','B','B','B','B','B','.'],
+    ];
+    // Last move from C1 (row 7, col 2) to C3 (row 5, col 2) in 0-based
+    const highlight = new Set([`${7}:${2}`, `${5}:${2}`]);
+
+    const boardEl = document.getElementById('board');
+    for (let r=0;r<8;r++) {
+      for (let c=0;c<8;c++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell' + (highlight.has(`${r}:${c}`) ? ' highlight' : '');
+        const v = board[r][c];
+        if (v === 'B' || v === 'W') {
+          const p = document.createElement('div');
+          p.className = 'piece ' + (v === 'B' ? 'black' : 'white');
+          cell.appendChild(p);
+        }
+        boardEl.appendChild(cell);
+      }
+    }
+  </script>
+</body>
+</html>
+

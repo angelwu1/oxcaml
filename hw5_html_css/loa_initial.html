@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>LOA – Initial State</title>
+  <link rel="stylesheet" href="loa.css">
+</head>
+<body>
+  <div class="container">
+    <div class="title">Lines of Action — Initial Starting State</div>
+    <div class="board" id="board"></div>
+    <div class="footer">Resize the window or use Chrome dev tools to preview phone/tablet/laptop.</div>
+  </div>
+
+  <script>
+    // Matches logic/hw1.ml initial_board
+    const E = '.'; const B = 'B'; const W = 'W';
+    const board = [
+      ['.', 'B','B','B','B','B','B','.'],
+      ['W','.', '.', '.', '.', '.', '.', 'W'],
+      ['W','.', '.', '.', '.', '.', '.', 'W'],
+      ['W','.', '.', '.', '.', '.', '.', 'W'],
+      ['W','.', '.', '.', '.', '.', '.', 'W'],
+      ['W','.', '.', '.', '.', '.', '.', 'W'],
+      ['W','.', '.', '.', '.', '.', '.', 'W'],
+      ['.', 'B','B','B','B','B','B','.'],
+    ];
+
+    const boardEl = document.getElementById('board');
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        const v = board[r][c];
+        if (v === 'B' || v === 'W') {
+          const p = document.createElement('div');
+          p.className = 'piece ' + (v === 'B' ? 'black' : 'white');
+          cell.appendChild(p);
+        }
+        boardEl.appendChild(cell);
+      }
+    }
+  </script>
+</body>
+</html>
+
