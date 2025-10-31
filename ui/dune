@@ -1,6 +1,6 @@
 (executables
  (modes js)
- (names tictactoe_ui loa_ui)
- (libraries bonsai.web core virtual_dom tictactoe_logic_library loa_logic_library)
+ (names loa_ui)
+ (libraries bonsai.web core virtual_dom loa_logic_library)
  (preprocess
   (pps ppx_jane bonsai.ppx_bonsai)))
