@@ -1,0 +1,17 @@
+{
+  "name": "loa-multiplayer-server",
+  "version": "1.0.0",
+  "description": "WebSocket server for Lines of Action multiplayer",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.14.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
+

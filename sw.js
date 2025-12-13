@@ -1,6 +1,6 @@
 // Service Worker for Lines of Action Game
-const CACHE_NAME = 'loa-game-v1';
-const OFFLINE_CACHE_NAME = 'loa-offline-v1';
+const CACHE_NAME = 'loa-game-v15';
+const OFFLINE_CACHE_NAME = 'loa-offline-v15';
 
 // Assets to cache for offline functionality
 const ASSETS_TO_CACHE = [
@@ -10,7 +10,10 @@ const ASSETS_TO_CACHE = [
   './generated_js/loa_ui.bc.js',
   './hw5_html_css/loa_game.css',
   './game-storage.js',
-  './game-bridge.js'
+  './game-bridge.js',
+  './multiplayer.js',
+  './multiplayer-ui.js',
+  './multiplayer-integration.js'
 ];
 
 // Install event - cache assets
