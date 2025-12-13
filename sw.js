@@ -1,6 +1,6 @@
 // Service Worker for Lines of Action Game
-const CACHE_NAME = 'loa-game-v15';
-const OFFLINE_CACHE_NAME = 'loa-offline-v15';
+const CACHE_NAME = 'loa-game-v16';
+const OFFLINE_CACHE_NAME = 'loa-offline-v16';
 
 // Assets to cache for offline functionality
 const ASSETS_TO_CACHE = [

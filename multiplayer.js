@@ -26,14 +26,14 @@ class MultiplayerClient {
     if (customUrl) return customUrl;
     
     // Default: localhost for development
-    // Change this to your deployed server URL for production
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       return 'ws://localhost:3000';
     }
     
-    // For GitHub Pages or other hosting, use your deployed server
-    // Example: return 'wss://your-server.onrender.com';
-    return 'ws://localhost:3000';
+    // Production server URL (deployed on Render)
+    // TODO: Replace with your actual Render URL after deployment
+    // Format: wss://YOUR-APP-NAME.onrender.com
+    return 'wss://loa-multiplayer-server.onrender.com';
   }
   
   setServerUrl(url) {
