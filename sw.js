@@ -8,11 +8,9 @@ const ASSETS_TO_CACHE = [
   './index.html',
   './loa.html',
   './generated_js/loa_ui.bc.js',
-  './hw5_html_css/hw5_static_state.css',
   './hw5_html_css/loa_game.css',
   './game-storage.js',
-  './game-bridge.js',
-  './manifest.json'
+  './game-bridge.js'
 ];
 
 // Install event - cache assets
