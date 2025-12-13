@@ -1,15 +1,97 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Lines of Action</title>
-  <meta name="description" content="Lines of Action game">
+  <meta name="description" content="Lines of Action game - Play offline">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <link rel="stylesheet" type="text/css" href="./hw5_html_css/loa_game.css">
+  <meta name="theme-color" content="#2a79ff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="LOA Game">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="./manifest.json">
+  <link rel="stylesheet" type="text/css" href="./hw5_html_css/hw5_static_state.css">
   <link rel="icon" href="data:,">
+  
+  <!-- Game Storage Manager -->
+  <script src="./game-storage.js"></script>
+  <!-- Game Bridge for OCaml integration -->
+  <script src="./game-bridge.js"></script>
   <script defer src="./generated_js/loa_ui.bc.js"></script>
+  
+  <style>
+    #connection-status {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 1000;
+      transition: all 0.3s ease;
+    }
+    .status-online {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .status-offline {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+  </style>
 </head>
 <body>
+  <!-- Connection Status Indicator -->
+  <div id="connection-status"></div>
+  
+  
   <div id="app"></div>
+  
+  <script>
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then((registration) => {
+            console.log('[SW] Registered successfully:', registration.scope);
+            
+            // Check for updates
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log('[SW] New version available');
+                  // Optionally notify user about update
+                }
+              });
+            });
+          })
+          .catch((error) => {
+            console.log('[SW] Registration failed:', error);
+          });
+      });
+    }
+    
+    
+    // Initialize connection status
+    updateConnectionStatus(navigator.onLine);
+    
+    // Auto-save game state periodically
+    setInterval(() => {
+      const appState = document.getElementById('app');
+      if (appState && appState.dataset.gameState) {
+        try {
+          gameStorage.saveGameState(JSON.parse(appState.dataset.gameState));
+        } catch (e) {
+          console.log('[Storage] No game state to save');
+        }
+      }
+    }, 30000); // Save every 30 seconds
+  </script>
 </body>
 </html>
